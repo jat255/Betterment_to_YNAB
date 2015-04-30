@@ -3,7 +3,7 @@
 # import needed utilities
 import pandas as pd
 from time import time
-from datetime import datetime
+from datetime import date, datetime, timedelta
 import numpy as np
 
 import sys
@@ -11,7 +11,10 @@ if sys.version_info[0] >= 3:
     raw_input = input
 
 # date after which to save the transactions
-dateafter = str(raw_input("Date from which to save transactions (YYYY-MM-DD)? "))
+dateafter = str(raw_input("Date from which to save transactions (YYYY-MM-DD)? [Default: 1 week ago] "))
+
+if dateafter is "":
+    dateafter = (date.today() - timedelta(days=7)).isoformat()
 
 # default filename to read from is transactions.csv
 filename = str(raw_input("Filename to read transactions from? [Default: transactions.csv] "))
@@ -76,9 +79,11 @@ idx = df_masked['Payee'].isin(['Automatic Deposit',
 
 res = df_masked.loc[~idx,['Date','Payee','Category','Memo','Outflow','Inflow']]
 
-print res
+print(res)
 
 res.to_csv(filename[:-4] + '_YNAB.csv',
            sep=',',
            index=False,
            )
+
+print("\nSaved results to " + filename[:-4] + '_YNAB.csv')
