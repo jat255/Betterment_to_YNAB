@@ -20,7 +20,7 @@ if filename is "":
     filename = 'transactions.csv'
 
 # Read in the data from Betterment
-df = pd.read_csv('transactions.csv',
+df = pd.read_csv(filename,
                  sep=',',
                  header=0,
                 )
