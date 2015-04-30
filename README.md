@@ -1,12 +1,17 @@
 # Betterment_to_YNAB
 Script to convert [Betterment](https://betterment.com)'s saved transactions to a format understood by [YNAB](https://www.youneedabudget.com/).
 
+Installation
+------------
+Written and tested using: 
+ * Python 2.7.9 (should also work with 3.4.3+) ([link](https://www.python.org/downloads/))
+ * Pandas 0.16.0 ([link] (http://pandas.pydata.org/))
+ * Numpy 1.9.2 ([link](http://www.scipy.org/scipylib/download.html))
+
+Make sure the above are installed, then simply clone (or download) this repository to a local directory.
+
 Usage
 -----
-Written and tested using: 
- * Python 2.7.9 (should also work with 3.4.3+)
- * Pandas 0.16.0
- * Numpy 1.9.2
  
 To use:
  1. Download transactions from Betterment.com and save to same directory as script
