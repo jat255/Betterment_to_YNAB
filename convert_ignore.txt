@@ -1,4 +1,4 @@
-# Transaction names to ignore when importing:
+# Transaction names to ignore when importing (DO NOT DELETE THIS LINE):
 Automatic Deposit
 2014 Tax Year Contribution
 Automatic 2015 Tax Year Contribution
