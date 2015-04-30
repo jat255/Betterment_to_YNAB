@@ -65,17 +65,15 @@ df['Inflow'] = df.apply(lambda row: (row['Amount']
 df_masked = df[(df['Date Completed'] > dateafter)]
 
 # Find locations of automatic deposits so they aren't printed
-# Add lines here for any types of transactions you wish to ignore
-idx = df_masked['Payee'].isin(['Automatic Deposit', 
-                               '2014 Tax Year Contribution', 
-                               'Automatic 2015 Tax Year Contribution',
-                               'Initial Allocation',
-                               'Initial Deposit from ****9401',
-                               'Initial Deposit from ****5189',
-                               'Allocation Change',
-                               'Portfolio Update',
-                               'Deposit from ****9401',
-                               'Deposit from ****5189'])
+# Add lines to convert_ignore.txt for any types of transactions you wish to ignore
+with open("convert_ignore.txt", "r") as f:
+    names = f.readlines()
+
+ignore_list = [n[:-1] for n in names[1:]]
+
+print(ignore_list)
+
+idx = df_masked['Payee'].isin(ignore_list)
 
 res = df_masked.loc[~idx,['Date','Payee','Category','Memo','Outflow','Inflow']]
 

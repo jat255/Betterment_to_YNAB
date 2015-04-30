@@ -1,0 +1,11 @@
+# Transaction names to ignore when importing:
+Automatic Deposit
+2014 Tax Year Contribution
+Automatic 2015 Tax Year Contribution
+Initial Allocation
+Initial Deposit from ****9401
+Initial Deposit from ****5189
+Allocation Change
+Portfolio Update
+Deposit from ****9401
+Deposit from ****5189
