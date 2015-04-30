@@ -14,7 +14,7 @@ if sys.version_info[0] >= 3:
 dateafter = str(raw_input("Date from which to save transactions (YYYY-MM-DD)? "))
 
 # default filename to read from is transactions.csv
-filename = str(raw_input("Filename to read transactions from? [Default: transactions.csv]"))
+filename = str(raw_input("Filename to read transactions from? [Default: transactions.csv] "))
 
 if filename is "":
     filename = 'transactions.csv'
@@ -78,7 +78,7 @@ res = df_masked.loc[~idx,['Date','Payee','Category','Memo','Outflow','Inflow']]
 
 print res
 
-res.to_csv('transactions_YNAB.csv',
+res.to_csv(filename[:-4] + '_YNAB.csv',
            sep=',',
            index=False,
            )
