@@ -4,7 +4,7 @@
 import pandas as pd
 from time import time
 from datetime import date, datetime, timedelta
-import numpy as np
+#import numpy as np
 
 import sys
 if sys.version_info[0] >= 3:
@@ -40,8 +40,9 @@ df['Ending Balance'] = df.apply(lambda row: float(row['Ending Balance'].replace(
 # Create needed columns and rename existing ones
 sLength = len(df['Amount'])
 df.rename(columns={'Transaction Description':'Payee'}, inplace=True)
-df['Inflow'] = pd.Series(np.zeros(sLength), index=df.index)
-df['Outflow'] = pd.Series(np.zeros(sLength), index=df.index)
+df['Inflow'] = pd.Series([0] * sLength, index=df.index)
+df['Outflow'] = pd.Series([0] * sLength, index=df.index)
+
 df['Memo'] = ''
 df['Category'] = ''
 
@@ -71,12 +72,11 @@ with open("convert_ignore.txt", "r") as f:
 
 ignore_list = [n[:-1] for n in names[1:]]
 
-print(ignore_list)
-
 idx = df_masked['Payee'].isin(ignore_list)
 
 res = df_masked.loc[~idx,['Date','Payee','Category','Memo','Outflow','Inflow']]
 
+print("")
 print(res)
 
 res.to_csv(filename[:-4] + '_YNAB.csv',
