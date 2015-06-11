@@ -1,4 +1,6 @@
 *.ipynb
 *.csv
-download_trans.py
 dl_convert.py
+.idea/
+*.pyc
+*~
