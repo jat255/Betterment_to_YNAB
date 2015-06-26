@@ -1,90 +1,269 @@
 #!/usr/bin/env python
 
+# TODO: Add arguments to choose which function to use from main function
+
 # import needed utilities
 import pandas as pd
 from time import time
 from datetime import date, datetime, timedelta
-# import numpy as np
+import ConfigParser
+from getpass import getpass
+import sys
 
 import sys
 if sys.version_info[0] >= 3:
     raw_input = input
 
-# date after which to save the transactions
-dateafter = str(raw_input("Date from which to save transactions (YYYY-MM-DD)? "
-                          "[Default: 1 week ago] "))
-
-if dateafter is "":
-    dateafter = (date.today() - timedelta(days=7)).isoformat()
-
-# default filename to read from is transactions.csv
-filename = str(raw_input("Filename to read transactions from? "
-                         "[Default: transactions.csv] "))
-
-if filename is "":
-    filename = 'transactions.csv'
-
-# Read in the data from Betterment
-df = pd.read_csv(filename,
-                 sep=',',
-                 header=0,)
-
-df = df[pd.notnull(df['Ending Balance'])]
+print_out = False
 
 
-# Run converters to clean up the data
-df['Amount'] = df.apply(lambda row: float(row['Amount'].replace('$', '')),
-                        axis=1)
-df['Ending Balance'] = df.apply(lambda row:
-                                float(row['Ending Balance'].replace('$', '')),
-                                axis=1)
-# df['Date Completed'] = df.apply(lambda row:
-#                                 str(row['Date Completed'].split('.')[0]))
+def log(output):
+    """
+    Helper function to print output if flag is set
+    """
+    if print_out:
+        print(output)
 
 
-# Create needed columns and rename existing ones
-sLength = len(df['Amount'])
-df.rename(columns={'Transaction Description':'Payee'}, inplace=True)
-df['Inflow'] = pd.Series([0] * sLength, index=df.index)
-df['Outflow'] = pd.Series([0] * sLength, index=df.index)
+def convert_betterment_to_ynab(dateafter='earliest',
+                               filename=None,
+                               print_output=False
+                               ):
+    """
+    Convert a csv file downloaded from Betterment to YNAB format
 
-df['Memo'] = ''
-df['Category'] = ''
+    Parameters:
+    -----------
+    dateafter: 'earliest', date str, or None
+        Date before which to filter out transactions
+        If 'earliest', all transactions will be included.
+        If None, the user will be asked for a date interactively.
+        If providing as a str, must be in the format 'YYYY-MM-DD'
+    filename: str or None
+        Name of file containing downloaded transactions (CSV file)
+        If None, the user will be asked for a filename interactively.
+    print_output: boolean
+        switch to control whether output about the conversion is printed for the user
+    """
+    global print_out
+    print_out = print_output
 
-# Convert timestamps to datetime
-df['Date Completed'] = pd.to_datetime(df['Date Completed'],
-                                      format='%Y-%m-%d %H:%M:%S.%f')
+    if dateafter is None:
+        # date after which to save the transactions
+        dateafter = str(raw_input("Date from which to save transactions (YYYY-MM-DD)? "
+                                  "[Default: 1 week ago] "))
+        if dateafter is "":
+            dateafter = (date.today() - timedelta(days=7)).isoformat()
 
-# Create new column for date output
-df['Date'] = df['Date Completed'].apply(lambda x: x.strftime('%m/%d/%Y'))
+    if filename is None:
+        # default filename to read from is transactions.csv
+        filename = str(raw_input("Filename to read transactions from? "
+                                 "[Default: transactions.csv] "))
+        if filename is "":
+            filename = 'transactions.csv'
 
-# Figure data for inflows and outflows:
-df['Outflow'] = df.apply(lambda row: (-1 * row['Amount']
-                                      if row['Amount'] <= 0 else 0), axis=1)
-df['Inflow'] = df.apply(lambda row: (row['Amount']
-                                     if row['Amount'] > 0 else 0), axis=1)
+    # Read in the data from Betterment
+    df = pd.read_csv(filename,
+                     sep=',',
+                     header=0,)
 
-# Mask the dataframe by date (so we're only showing new transactions)
-df_masked = df[(df['Date Completed'] > dateafter)]
+    df = df[pd.notnull(df['Ending Balance'])]
 
-# Find locations of automatic deposits so they aren't printed
-# Add lines to convert_ignore.txt for any types of
-# transactions you wish to ignore
-with open("convert_ignore.txt", "r") as f:
-    names = f.readlines()
+    # Run converters to clean up the data
+    df['Amount'] = df.apply(lambda row: float(row['Amount'].replace('$', '')),
+                            axis=1)
+    df['Ending Balance'] = df.apply(lambda row:
+                                    float(row['Ending Balance'].replace('$', '')),
+                                    axis=1)
 
-ignore_list = [n[:-1] for n in names[1:]]
+    # Create needed columns and rename existing ones
+    s_length = len(df['Amount'])
+    df.rename(columns={'Transaction Description':'Payee'}, inplace=True)
+    df['Inflow'] = pd.Series([0] * s_length, index=df.index)
+    df['Outflow'] = pd.Series([0] * s_length, index=df.index)
 
-idx = df_masked['Payee'].isin(ignore_list)
+    df['Memo'] = ''
+    df['Category'] = ''
 
-res = df_masked.loc[~idx,['Date','Payee','Category','Memo','Outflow','Inflow']]
+    # Convert timestamps to datetime
+    df['Date Completed'] = pd.to_datetime(df['Date Completed'],
+                                          format='%Y-%m-%d %H:%M:%S.%f')
 
-print("")
-print(res)
+    # Create new column for date output
+    df['Date'] = df['Date Completed'].apply(lambda x: x.strftime('%m/%d/%Y'))
 
-res.to_csv(filename[:-4] + '_YNAB.csv',
-           sep=',',
-           index=False,
-           )
+    # Figure data for inflows and outflows:
+    df['Outflow'] = df.apply(lambda row: (-1 * row['Amount']
+                                          if row['Amount'] <= 0 else 0), axis=1)
+    df['Inflow'] = df.apply(lambda row: (row['Amount']
+                                         if row['Amount'] > 0 else 0), axis=1)
 
-print("\nSaved results to " + filename[:-4] + '_YNAB.csv')
+    if dateafter != 'earliest':
+        # Mask the dataframe by date (so we're only showing new transactions)
+        df_masked = df[(df['Date Completed'] > dateafter)]
+    else:
+        df_masked = df
+
+    # Find locations of automatic deposits so they aren't printed
+    # Add lines to convert_ignore.txt for any types of
+    # transactions you wish to ignore
+    with open("convert_ignore.txt", "r") as f:
+        names = f.readlines()
+
+    ignore_list = [n[:-1] for n in names[1:]]
+
+    idx = df_masked['Payee'].isin(ignore_list)
+
+    res = df_masked.loc[~idx,['Date','Payee','Category','Memo','Outflow','Inflow']]
+
+    log("")
+    log(res)
+
+    res.to_csv(filename[:-4] + '_YNAB.csv',
+               sep=',',
+               index=False,
+               )
+
+    log("\nSaved results to " + filename[:-4] + '_YNAB.csv')
+
+
+def read_config_section(fname, section):
+    """
+    Read a configuration file from the disk using ConfigParser.
+
+    fname: str
+      filename of configuration file for downloading
+
+    Returns:
+    --------
+    dict1: dictionary
+        dictionary containing configuration options
+    """
+    config = ConfigParser.ConfigParser()
+    config.read(fname)
+
+    dict1 = {}
+    options = config.options(section)
+    for option in options:
+        try:
+            dict1[option] = config.get(section, option)
+            if dict1[option] == -1:
+                print("skip: %s" % option)
+        except:
+            print("exception on %s!" % option)
+            dict1[option] = None
+
+    return dict1
+
+
+def download_trans(print_output=False,
+                   days_ago=None):
+    """
+    Download transactions according to configuration file 'account_info.ini', using saved
+    keyring credentials (if available). If not, user will be asked for username and password
+
+    print_output: boolean
+        switch to control whether or not information is printed to the console
+    days_ago: int or None
+        number of days back for which to download transactions.
+        If None, will be read from configuration file
+
+    Returns:
+    --------
+    files: list of str
+        list of file names that were downloaded
+    """
+    global print_out
+    print_out = print_output
+    files = []
+
+    user_dict = read_config_section('account_info.ini', 'UserInfo')
+    acc_dict = read_config_section('account_info.ini', 'AccountInfo')
+
+    # Figure out number of days
+    if days_ago is None:
+        days_ago = str(user_dict['days'])
+
+    # Get username and password either from the keyring, or from the user
+    try:
+        import keyring
+        user = user_dict['user']
+        passwd = keyring.get_password(user_dict['keyring_name'], user)
+        if passwd is None:
+            raise ValueError("Password not found in keyring")
+    except ValueError, e:
+        print(e)
+        user = raw_input("Betterment username: ")
+        passwd = getpass("Betterment password: ")
+    except ImportError, e:
+        print(e)
+        user = raw_input("Betterment username: ")
+        passwd = getpass("Betterment password: ")
+
+    try:
+        from twill import set_output
+        from twill.commands import go, fv, submit, save_html, show
+    except ImportError, e:
+        print("Could not import twill library. "
+              "Please check installation and try again")
+        sys.exit(1)
+
+    # Disable twill output if not desired
+    if not print_out:
+        import os
+        f = open(os.devnull, "w")
+        set_output(f)
+    else:
+        set_output(None)
+
+    # Login to betterment:
+    go('https://www.betterment.com/')
+    fv("2", "userName", user)
+    fv("2", "password", passwd)
+    submit('0')
+
+    # Get account group ID from config file and delete it
+    acc_group_id = acc_dict['account_group_id']
+    del acc_dict['account_group_id']
+
+    # Loop through the accounts defined in the config file,
+    # downloading and saving the csv file of transactions for each one
+    for account_name in acc_dict:
+        account_number = acc_dict[account_name]
+
+        # Download accounts:
+        go("https://wwws.betterment.com/transactions.csv?accountGroupId=" +
+           acc_group_id + "&account=" + account_number + "&startDaysAgo=" +
+           days_ago + "&format=csv")
+        fname = "transactions_" + account_name + ".csv"
+        save_html(fname)
+        # show()
+
+        log("Saved " + fname)
+        files.append(fname)
+
+    return files
+
+
+def dl_convert(print_output=False,
+               days_ago=None):
+    """
+    Helper function to call the two methods above that do the downloading and converting.
+    See those methods for parameter definitions.
+    """
+    files = download_trans(print_output=print_output,
+                           days_ago=days_ago)
+
+    for f in files:
+        convert_betterment_to_ynab(filename=f,
+                                   print_output=print_output)
+
+
+def main():
+    convert_betterment_to_ynab(dateafter=None,
+                               filename=None,
+                               print_output=True)
+
+
+if __name__ == "__main__":
+    main()

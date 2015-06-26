@@ -1,6 +1,7 @@
 # Transaction names to ignore when importing (DO NOT DELETE THIS LINE):
 Automatic Deposit
 2014 Tax Year Contribution
+2015 Tax Year Contribution
 Automatic 2015 Tax Year Contribution
 Initial Allocation
 Initial Deposit from ****9401
