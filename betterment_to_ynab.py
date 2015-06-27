@@ -6,11 +6,18 @@
 import pandas as pd
 from time import time
 from datetime import date, datetime, timedelta
-import ConfigParser
+
+try:
+    # Python 2 import
+    import ConfigParser as cp
+except:
+    # Python 3 import
+    import configparser as cp
+
 from getpass import getpass
 import sys
+import argparse
 
-import sys
 if sys.version_info[0] >= 3:
     raw_input = input
 
@@ -26,7 +33,7 @@ def log(output):
 
 
 def convert_betterment_to_ynab(dateafter='earliest',
-                               filename=None,
+                               filenames=None,
                                print_output=False
                                ):
     """
@@ -39,7 +46,7 @@ def convert_betterment_to_ynab(dateafter='earliest',
         If 'earliest', all transactions will be included.
         If None, the user will be asked for a date interactively.
         If providing as a str, must be in the format 'YYYY-MM-DD'
-    filename: str or None
+    filenames: str, list of str, or None
         Name of file containing downloaded transactions (CSV file)
         If None, the user will be asked for a filename interactively.
     print_output: boolean
@@ -55,76 +62,82 @@ def convert_betterment_to_ynab(dateafter='earliest',
         if dateafter is "":
             dateafter = (date.today() - timedelta(days=7)).isoformat()
 
-    if filename is None:
+    if filenames is None:
         # default filename to read from is transactions.csv
-        filename = str(raw_input("Filename to read transactions from? "
-                                 "[Default: transactions.csv] "))
-        if filename is "":
-            filename = 'transactions.csv'
+        filenames = [str(raw_input("Filename to read transactions from? "
+                                  "[Default: transactions.csv] "))]
+        if filenames is "":
+            filenames = ['transactions.csv']
 
-    # Read in the data from Betterment
-    df = pd.read_csv(filename,
-                     sep=',',
-                     header=0,)
+    # If filename is just one string, convert it to single-item list
+    if isinstance(filenames, str):
+        filenames = [filenames]
 
-    df = df[pd.notnull(df['Ending Balance'])]
+    # Loop through filename list and convert them
+    for f in filenames:
+        # Read in the data from Betterment
+        df = pd.read_csv(f,
+                         sep=',',
+                         header=0,)
 
-    # Run converters to clean up the data
-    df['Amount'] = df.apply(lambda row: float(row['Amount'].replace('$', '')),
-                            axis=1)
-    df['Ending Balance'] = df.apply(lambda row:
-                                    float(row['Ending Balance'].replace('$', '')),
-                                    axis=1)
+        df = df[pd.notnull(df['Ending Balance'])]
 
-    # Create needed columns and rename existing ones
-    s_length = len(df['Amount'])
-    df.rename(columns={'Transaction Description':'Payee'}, inplace=True)
-    df['Inflow'] = pd.Series([0] * s_length, index=df.index)
-    df['Outflow'] = pd.Series([0] * s_length, index=df.index)
+        # Run converters to clean up the data
+        df['Amount'] = df.apply(lambda row: float(row['Amount'].replace('$', '')),
+                                axis=1)
+        df['Ending Balance'] = df.apply(lambda row:
+                                        float(row['Ending Balance'].replace('$', '')),
+                                        axis=1)
 
-    df['Memo'] = ''
-    df['Category'] = ''
+        # Create needed columns and rename existing ones
+        s_length = len(df['Amount'])
+        df.rename(columns={'Transaction Description':'Payee'}, inplace=True)
+        df['Inflow'] = pd.Series([0] * s_length, index=df.index)
+        df['Outflow'] = pd.Series([0] * s_length, index=df.index)
 
-    # Convert timestamps to datetime
-    df['Date Completed'] = pd.to_datetime(df['Date Completed'],
-                                          format='%Y-%m-%d %H:%M:%S.%f')
+        df['Memo'] = ''
+        df['Category'] = ''
 
-    # Create new column for date output
-    df['Date'] = df['Date Completed'].apply(lambda x: x.strftime('%m/%d/%Y'))
+        # Convert timestamps to datetime
+        df['Date Completed'] = pd.to_datetime(df['Date Completed'],
+                                              format='%Y-%m-%d %H:%M:%S.%f')
 
-    # Figure data for inflows and outflows:
-    df['Outflow'] = df.apply(lambda row: (-1 * row['Amount']
-                                          if row['Amount'] <= 0 else 0), axis=1)
-    df['Inflow'] = df.apply(lambda row: (row['Amount']
-                                         if row['Amount'] > 0 else 0), axis=1)
+        # Create new column for date output
+        df['Date'] = df['Date Completed'].apply(lambda x: x.strftime('%m/%d/%Y'))
 
-    if dateafter != 'earliest':
-        # Mask the dataframe by date (so we're only showing new transactions)
-        df_masked = df[(df['Date Completed'] > dateafter)]
-    else:
-        df_masked = df
+        # Figure data for inflows and outflows:
+        df['Outflow'] = df.apply(lambda row: (-1 * row['Amount']
+                                              if row['Amount'] <= 0 else 0), axis=1)
+        df['Inflow'] = df.apply(lambda row: (row['Amount']
+                                             if row['Amount'] > 0 else 0), axis=1)
 
-    # Find locations of automatic deposits so they aren't printed
-    # Add lines to convert_ignore.txt for any types of
-    # transactions you wish to ignore
-    with open("convert_ignore.txt", "r") as f:
-        names = f.readlines()
+        if dateafter != 'earliest':
+            # Mask the dataframe by date (so we're only showing new transactions)
+            df_masked = df[(df['Date Completed'] > dateafter)]
+        else:
+            df_masked = df
 
-    ignore_list = [n[:-1] for n in names[1:]]
+        # Find locations of automatic deposits so they aren't printed
+        # Add lines to convert_ignore.txt for any types of
+        # transactions you wish to ignore
+        with open("convert_ignore.txt", "r") as ignore_file:
+            names = ignore_file.readlines()
 
-    idx = df_masked['Payee'].isin(ignore_list)
+        ignore_list = [n[:-1] for n in names[1:]]
 
-    res = df_masked.loc[~idx,['Date','Payee','Category','Memo','Outflow','Inflow']]
+        idx = df_masked['Payee'].isin(ignore_list)
 
-    log("")
-    log(res)
+        res = df_masked.loc[~idx,['Date','Payee','Category','Memo','Outflow','Inflow']]
 
-    res.to_csv(filename[:-4] + '_YNAB.csv',
-               sep=',',
-               index=False,
-               )
+        log("")
+        log(res)
 
-    log("\nSaved results to " + filename[:-4] + '_YNAB.csv')
+        res.to_csv(f[:-4] + '_YNAB.csv',
+                   sep=',',
+                   index=False,
+                   )
+
+        log("\nSaved results to " + f[:-4] + '_YNAB.csv')
 
 
 def read_config_section(fname, section):
@@ -139,7 +152,7 @@ def read_config_section(fname, section):
     dict1: dictionary
         dictionary containing configuration options
     """
-    config = ConfigParser.ConfigParser()
+    config = cp.ConfigParser()
     config.read(fname)
 
     dict1 = {}
@@ -191,11 +204,11 @@ def download_trans(print_output=False,
         passwd = keyring.get_password(user_dict['keyring_name'], user)
         if passwd is None:
             raise ValueError("Password not found in keyring")
-    except ValueError, e:
+    except ValueError as e:
         print(e)
         user = raw_input("Betterment username: ")
         passwd = getpass("Betterment password: ")
-    except ImportError, e:
+    except ImportError as e:
         print(e)
         user = raw_input("Betterment username: ")
         passwd = getpass("Betterment password: ")
@@ -203,7 +216,7 @@ def download_trans(print_output=False,
     try:
         from twill import set_output
         from twill.commands import go, fv, submit, save_html, show
-    except ImportError, e:
+    except ImportError as e:
         print("Could not import twill library. "
               "Please check installation and try again")
         sys.exit(1)
@@ -254,15 +267,59 @@ def dl_convert(print_output=False,
     files = download_trans(print_output=print_output,
                            days_ago=days_ago)
 
-    for f in files:
-        convert_betterment_to_ynab(filename=f,
-                                   print_output=print_output)
+    convert_betterment_to_ynab(filenames=files,
+                               print_output=print_output)
 
 
 def main():
-    convert_betterment_to_ynab(dateafter=None,
-                               filename=None,
-                               print_output=True)
+    parser = argparse.ArgumentParser(description='Script to download and convert transactions '
+                                                 'from Betterment for import into YNAB. To '
+                                                 'download and convert (showing output), use '
+                                                 'the options \'-dcv\'.')
+    parser.add_argument('-v', '--verbose',
+                        action='store_true',
+                        help='verbose flag to show more output on command line')
+    parser.add_argument('-d', '--download',
+                        action='store_true',
+                        help='use this flag to control if transactions are downloaded')
+    parser.add_argument('-c', '--convert',
+                        action='store_true',
+                        help='use this flag to control if transactions are converted')
+    parser.add_argument('-f', '--filenames',
+                        action='store',
+                        nargs='+',
+                        help='names of files to convert, separated by spaces')
+    parser.add_argument('--days',
+                        action='store',
+                        help='number of days of history to download from Betterment')
+    parser.add_argument('--dateafter',
+                        action='store',
+                        help='date after which to save transactions (when converting). '
+                             'Must be in format YYYY-MM-DD. '
+                             'Default is all transactions are saved.')
+
+    args = parser.parse_args()
+
+    if len(sys.argv) == 1:
+        parser.print_help()
+
+    if args.dateafter is None:
+        # Set default conversion time as all days that were downloaded
+        args.dateafter = 'earliest'
+
+    if args.download and not args.convert:
+        # Just downloading transactions
+        download_trans(print_output=args.verbose,
+                       days_ago=args.days)
+    elif not args.download and args.convert:
+        # Just converting transactions
+        convert_betterment_to_ynab(print_output=args.verbose,
+                                   filenames=args.filenames,
+                                   dateafter=args.dateafter)
+    elif args.download and args.convert:
+        # Download and convert:
+        dl_convert(print_output=args.verbose,
+                   days_ago=args.days)
 
 
 if __name__ == "__main__":

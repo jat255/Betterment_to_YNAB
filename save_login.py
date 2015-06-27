@@ -11,9 +11,11 @@ import sys
 import getopt
 import keyring
 
+
 def usage():
     print(sys.argv[0] + " -u <username> -p <password>")
     sys.exit(2)
+
 
 def main():
     user = None
@@ -37,11 +39,11 @@ def main():
         keyring.set_password('betterment_to_ynab',
                              user,
                              passwd)
-        print 'Saved login information to system keyring under ' \
-              'the name \"betterment_to_ynab\".'
+        print('Saved login information to system keyring under '
+              'the name \"betterment_to_ynab\".')
 
     else:
-        print "Both username and password must be provided:"
+        print("Both username and password must be provided:")
         usage()
 
 if __name__ == "__main__":
