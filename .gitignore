@@ -5,3 +5,5 @@ dl_convert.py
 *.pyc
 *~
 *.exe
+OFX 2.1.1 schema.zip
+OFX 2.1.1.pdf

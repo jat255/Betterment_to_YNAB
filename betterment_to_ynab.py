@@ -233,8 +233,16 @@ def download_trans(print_output=False,
     go('https://www.betterment.com/')
     fv("2", "userName", user)
     fv("2", "password", passwd)
-    submit('0')
 
+    got_in = False
+    for i in range(4):
+        if not got_in:
+            try:
+                submit(str(i))
+                got_in = True
+            except:
+                log(str(i) + "th submit failed, trying again")
+            
     # Get account group ID from config file and delete it
     acc_group_id = acc_dict['account_group_id']
     del acc_dict['account_group_id']
