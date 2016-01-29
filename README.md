@@ -1,6 +1,7 @@
 # Betterment_to_YNAB
 
 [![Join the chat at https://gitter.im/jat255/Betterment_to_YNAB](https://badges.gitter.im/jat255/Betterment_to_YNAB.svg)](https://gitter.im/jat255/Betterment_to_YNAB?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 Script to convert [Betterment](https://betterment.com)'s saved transactions 
 to  a format understood by [YNAB](https://www.youneedabudget.com/).
 
