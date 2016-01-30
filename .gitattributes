@@ -1,0 +1,16 @@
+# These files are text and should be normalized (convert crlf =&gt; lf)
+*.py          text
+*.ini  	      text
+*.ipynb       text
+*.spec        text
+*.svg         text
+*.csv         text
+*.md 	      text
+
+# Images should be treated as binary
+# (binary is a macro for -text -diff)
+*.exe     binary
+*.gpg     binary
+*.pdf	  binary
+*.ico     binary
+*.zip	  binary

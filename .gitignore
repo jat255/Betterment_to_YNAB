@@ -3,7 +3,10 @@
 dl_convert.py
 .idea/
 *.pyc
+*.gpg
 *~
 *.exe
 OFX 2.1.1 schema.zip
 OFX 2.1.1.pdf
+*.kate-swp
+\#*\#

@@ -83,11 +83,17 @@ def convert_betterment_to_ynab(dateafter='earliest',
         df = df[pd.notnull(df['Ending Balance'])]
 
         # Run converters to clean up the data
-        df['Amount'] = df.apply(lambda row: float(row['Amount'].replace('$', '')),
-                                axis=1)
-        df['Ending Balance'] = df.apply(lambda row:
-                                        float(row['Ending Balance'].replace('$', '')),
-                                        axis=1)
+
+        # As of Jan 2016, $ characters are no longer included, so don't need
+        #  to do this anymore...
+        # df['Amount'] = df.apply(lambda row: float(row['Amount'].replace('$', '')),
+        #                         axis=1)
+        # df['Ending Balance'] = df.apply(lambda row:
+        #                                 float(row['Ending Balance'].replace('$', '')),
+        #                                 axis=1)
+
+        # Remove the time zone information from the Date column
+        df['Date Completed'] = df['Date Completed'].map(lambda x: x[:-6])
 
         # Create needed columns and rename existing ones
         s_length = len(df['Amount'])
@@ -100,10 +106,11 @@ def convert_betterment_to_ynab(dateafter='earliest',
 
         # Convert timestamps to datetime
         df['Date Completed'] = pd.to_datetime(df['Date Completed'],
-                                              format='%Y-%m-%d %H:%M:%S.%f')
+                                              format='%Y-%m-%d %H:%M:%S')
 
         # Create new column for date output
-        df['Date'] = df['Date Completed'].apply(lambda x: x.strftime('%m/%d/%Y'))
+        df['Date'] = df['Date Completed'].apply(lambda x:
+                                                x.strftime('%m/%d/%Y'))
 
         # Figure data for inflows and outflows:
         df['Outflow'] = df.apply(lambda row: (-1 * row['Amount']
@@ -197,6 +204,13 @@ def download_trans(print_output=False,
     if days_ago is None:
         days_ago = str(user_dict['days'])
 
+    # generate proper date strings
+    end_d = date.today()
+    end_s = end_d.strftime("%Y-%m-%d")
+    dt = timedelta(days=int(days_ago))
+    start_d = end_d - dt
+    start_s = start_d.strftime("%Y-%m-%d")
+
     # Get username and password either from the keyring, or from the user
     try:
         import keyring
@@ -230,37 +244,48 @@ def download_trans(print_output=False,
         set_output(None)
 
     # Login to betterment:
-    go('https://www.betterment.com/')
+    go('https://www.betterment.com/login')
     fv("2", "userName", user)
     fv("2", "password", passwd)
 
     got_in = False
-    for i in range(4):
+    for i in range(6):
         if not got_in:
             try:
                 submit(str(i))
                 got_in = True
             except:
                 log(str(i) + "th submit failed, trying again")
-            
-    # Get account group ID from config file and delete it
-    acc_group_id = acc_dict['account_group_id']
-    del acc_dict['account_group_id']
 
     # Loop through the accounts defined in the config file,
     # downloading and saving the csv file of transactions for each one
     for account_name in acc_dict:
         account_number = acc_dict[account_name]
 
+        filter_text = '&activity_filter%5Btransaction_type_categories%5D%5B%5D'
+        dl_link = 'https://wwws.betterment.com/app/activity_transactions.csv' \
+                  '?activity_filter%5Bend_on%5D=' + end_s + \
+                  '&activity_filter%5Bstart_on%5D=' + start_s + \
+                  '&activity_filter%5Bsub_account_id%5D=' + account_number + \
+                  filter_text + '=deposits' + \
+                  filter_text + '=withdrawals'  + \
+                  filter_text + '=dividends' + \
+                  filter_text + '=tax_loss_harvests' + \
+                  filter_text + '=allocation_changes' + \
+                  filter_text + '=fees' + \
+                  filter_text + '=other' + \
+                  filter_text + '=market_changes'
+
+        # log('Downloading {} transactions from {}'.format(account_name,
+        #                                                  dl_link))
+
         # Download accounts:
-        go("https://wwws.betterment.com/transactions.csv?accountGroupId=" +
-           acc_group_id + "&account=" + account_number + "&startDaysAgo=" +
-           days_ago + "&format=csv")
+        go(dl_link)
         fname = "transactions_" + account_name + ".csv"
         save_html(fname)
         # show()
 
-        log("Saved " + fname)
+        log("\nSaved " + fname + '\n')
         files.append(fname)
 
     return files
