@@ -39,8 +39,8 @@ def convert_betterment_to_ynab(dateafter='earliest',
     """
     Convert a csv file downloaded from Betterment to YNAB format
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     dateafter: 'earliest', date str, or None
         Date before which to filter out transactions
         If 'earliest', all transactions will be included.
@@ -50,14 +50,16 @@ def convert_betterment_to_ynab(dateafter='earliest',
         Name of file containing downloaded transactions (CSV file)
         If None, the user will be asked for a filename interactively.
     print_output: boolean
-        switch to control whether output about the conversion is printed for the user
+        switch to control whether output about the conversion is printed
+        for the user
     """
     global print_out
     print_out = print_output
 
     if dateafter is None:
         # date after which to save the transactions
-        dateafter = str(raw_input("Date from which to save transactions (YYYY-MM-DD)? "
+        dateafter = str(raw_input("Date from which to save transactions "
+                                  "(YYYY-MM-DD)? "
                                   "[Default: 1 week ago] "))
         if dateafter is "":
             dateafter = (date.today() - timedelta(days=7)).isoformat()
@@ -86,10 +88,12 @@ def convert_betterment_to_ynab(dateafter='earliest',
 
         # As of Jan 2016, $ characters are no longer included, so don't need
         #  to do this anymore...
-        # df['Amount'] = df.apply(lambda row: float(row['Amount'].replace('$', '')),
+        # df['Amount'] = df.apply(lambda row: float(row['Amount'].replace(
+        # '$',  '')),
         #                         axis=1)
         # df['Ending Balance'] = df.apply(lambda row:
-        #                                 float(row['Ending Balance'].replace('$', '')),
+        #                                 float(row['Ending Balance'].replace(
+        #                                       '$', '')),
         #                                 axis=1)
 
         # Remove the time zone information from the Date column
@@ -114,12 +118,15 @@ def convert_betterment_to_ynab(dateafter='earliest',
 
         # Figure data for inflows and outflows:
         df['Outflow'] = df.apply(lambda row: (-1 * row['Amount']
-                                              if row['Amount'] <= 0 else 0), axis=1)
+                                              if row['Amount'] <= 0 else 0),
+                                 axis=1)
         df['Inflow'] = df.apply(lambda row: (row['Amount']
-                                             if row['Amount'] > 0 else 0), axis=1)
+                                             if row['Amount'] > 0 else 0),
+                                axis=1)
 
         if dateafter != 'earliest':
-            # Mask the dataframe by date (so we're only showing new transactions)
+            # Mask the dataframe by date (so we're only showing  new
+            # transactions)
             df_masked = df[(df['Date Completed'] > dateafter)]
         else:
             df_masked = df
@@ -134,7 +141,8 @@ def convert_betterment_to_ynab(dateafter='earliest',
 
         idx = df_masked['Payee'].isin(ignore_list)
 
-        res = df_masked.loc[~idx,['Date','Payee','Category','Memo','Outflow','Inflow']]
+        res = df_masked.loc[~idx,['Date','Payee','Category','Memo',
+                                  'Outflow', 'Inflow']]
 
         log("")
         log(res)
@@ -151,13 +159,19 @@ def read_config_section(fname, section):
     """
     Read a configuration file from the disk using ConfigParser.
 
+    Parameters
+    ----------
     fname: str
-      filename of configuration file for downloading
+        filename of configuration file for downloading
+    section: str
+        section to read from
 
-    Returns:
-    --------
+    Returns
+    -------
     dict1: dictionary
         dictionary containing configuration options
+
+
     """
     config = cp.ConfigParser()
     config.read(fname)
@@ -179,17 +193,20 @@ def read_config_section(fname, section):
 def download_trans(print_output=False,
                    days_ago=None):
     """
-    Download transactions according to configuration file 'account_info.ini', using saved
-    keyring credentials (if available). If not, user will be asked for username and password
+    Download transactions according to configuration file
+    'account_info.ini', using saved keyring credentials (if available). If
+    not, user will be asked for username and password
 
+    Parameters
+    ----------
     print_output: boolean
         switch to control whether or not information is printed to the console
     days_ago: int or None
         number of days back for which to download transactions.
         If None, will be read from configuration file
 
-    Returns:
-    --------
+    Returns
+    -------
     files: list of str
         list of file names that were downloaded
     """
@@ -230,7 +247,7 @@ def download_trans(print_output=False,
     try:
         from twill import set_output
         from twill.commands import go, fv, submit, save_html, show
-    except ImportError as e:
+    except ImportError:
         print("Could not import twill library. "
               "Please check installation and try again")
         sys.exit(1)
@@ -294,7 +311,8 @@ def download_trans(print_output=False,
 def dl_convert(print_output=False,
                days_ago=None):
     """
-    Helper function to call the two methods above that do the downloading and converting.
+    Helper function to call the two methods above that do the
+    downloading and converting.
     See those methods for parameter definitions.
     """
     files = download_trans(print_output=print_output,
@@ -305,29 +323,37 @@ def dl_convert(print_output=False,
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Script to download and convert transactions '
-                                                 'from Betterment for import into YNAB. To '
-                                                 'download and convert (showing output), use '
+    parser = argparse.ArgumentParser(description='Script to download and  '
+                                                 'convert transactions '
+                                                 'from Betterment for  '
+                                                 'import into YNAB. To '
+                                                 'download and convert '
+                                                 '(showing output), use '
                                                  'the options \'-dcv\'.')
     parser.add_argument('-v', '--verbose',
                         action='store_true',
-                        help='verbose flag to show more output on command line')
+                        help='verbose flag to show more output on command '
+                             'line')
     parser.add_argument('-d', '--download',
                         action='store_true',
-                        help='use this flag to control if transactions are downloaded')
+                        help='use this flag to control if transactions are '
+                             'downloaded')
     parser.add_argument('-c', '--convert',
                         action='store_true',
-                        help='use this flag to control if transactions are converted')
+                        help='use this flag to control if transactions are '
+                             'converted')
     parser.add_argument('-f', '--filenames',
                         action='store',
                         nargs='+',
                         help='names of files to convert, separated by spaces')
     parser.add_argument('--days',
                         action='store',
-                        help='number of days of history to download from Betterment')
+                        help='number of days of history to download from '
+                             'Betterment')
     parser.add_argument('--dateafter',
                         action='store',
-                        help='date after which to save transactions (when converting). '
+                        help='date after which to save transactions (when '
+                             'converting). '
                              'Must be in format YYYY-MM-DD. '
                              'Default is all transactions are saved.')
 
