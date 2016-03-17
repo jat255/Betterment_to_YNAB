@@ -262,8 +262,8 @@ def download_trans(print_output=False,
 
     # Login to betterment:
     go('https://www.betterment.com/login')
-    fv("2", "userName", user)
-    fv("2", "password", passwd)
+    fv("1", "userName", user)
+    fv("1", "password", passwd)
 
     got_in = False
     for i in range(6):
