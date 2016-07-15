@@ -29,31 +29,32 @@ Usage
 To setup automatic downloading:
  
  2. First, you need to save your login information to your system keyring so
-  the script will be able to log you in. This script does not save any login
-  information on its own, but instead places it in the system's keyring, so it is as 
-  secure as your computer's local account. You will need to run the script 
-  `save_login.py` on each computer you wish to run the automated downloading
-  on. If you don't do this, the script will ask for your username and 
-  password each time it is run, since it is not saved.
+    the script will be able to log you in. This script does not save any login
+    information on its own, but instead places it in the system's keyring, so it is as 
+    secure as your computer's local account. You will need to run the script 
+    `save_login.py` on each computer you wish to run the automated downloading
+    on. If you don't do this, the script will ask for your username and 
+    password each time it is run, since it is not saved.
  
- 3. Then, configure the `account_info.ini` file to match the values for 
-  your account. Under the `[UserInfo]` section, the only values that should 
-  need changing are the user and the default days (prior to today) of transactions 
-  that you wish to download. Under the `[AccountInfo]` section, you need to 
-  add your account group ID and your account numbers. This information can 
-  be found by visiting the [activity page] 
-  (https://wwws.betterment.com/app/#activity) of your Betterment account, 
-  and hovering over the "Download Activity as CSV" link. In this link, you 
-  will see the `subAccountID=` (or something like that). 
-  Each account you have will have a 
-  different number. In the example `account_info.ini` file, I have two 
-  accounts (Wealth building and Roth IRA), so I have listed them there. The 
-  names you give them (`wb` and `roth`) don't matter, as the script will 
-  loop through all the accounts you put in this section and try to download 
-  their activity. The supplied names will be used in the outputted .csv files.
-  You should also change the directories to ones that make sense for you. The
-  downloaded files will be placed in this directory (Linux and Windows are supported,
-  support for MacOS should be trivial to add, but I don't have a system to test on).
+ 3. Then, rename `account_info_example.ini` to `account_info.ini` 
+    and configure the values to match your account. 
+    Under the `[UserInfo]` section, the only values that should 
+    need changing are the user and the default days (prior to today) of transactions 
+    that you wish to download. Under the `[AccountInfo]` section, you need to 
+    add your account group ID and your account numbers. This information can 
+    be found by visiting the [activity page] 
+    (https://wwws.betterment.com/app/#activity) of your Betterment account, 
+    and hovering over the "Download Activity as CSV" link. In this link, you 
+    will see the `subAccountID=` (or something like that). 
+    Each account you have will have a 
+    different number. In the example `account_info.ini` file, I have two 
+    accounts (Wealth building and Roth IRA), so I have listed them there. The 
+    names you give them (`wb` and `roth`) don't matter, as the script will 
+    loop through all the accounts you put in this section and try to download 
+    their activity. The supplied names will be used in the outputted .csv files.
+    You should also change the directories to ones that make sense for you. The
+    downloaded files will be placed in this directory (Linux and Windows are supported,
+    support for MacOS should be trivial to add, but I don't have a system to test on).
  
 To use the actual script:
 
