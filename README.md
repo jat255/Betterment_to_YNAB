@@ -8,7 +8,7 @@ to  a format understood by [YNAB](https://www.youneedabudget.com/).
 Installation
 ------------
 Written and tested using: 
- * Python 2.7.9 (auto downloading does not work with 3.4.3+) 
+ * Python 2.7.9+
  ([link](https://www.python.org/downloads/))
  
  * Pandas 0.16.0 ([link] (http://pandas.pydata.org/))
@@ -17,12 +17,8 @@ Written and tested using:
  
  * *optional -* Keyring 5.3 ([link] (https://pypi.python.org/pypi/keyring))
  
- * *optional -* Requests 2.7.0 ([link] 
-                (http://docs.python-requests.org/en/latest/))
- 
- * *optional -* Twill 0.9 ([link] (http://twill.idyll.org/))
-    * Note, for some reason this is not working with the most recent version
-     of twill (1.8.0), so stick with 0.9. Also, this does not work with python3, unfortunately
+ * *optional -* Selenium 2.53.6 ([link] (http://selenium-python.readthedocs.io/))
+    * Note, this also requires Firefox to be installed, since it uses the Firefox driver to download
 
 Make sure the above are installed, then simply clone (or download) this
 repository to a local directory.
@@ -48,13 +44,16 @@ To setup automatic downloading:
   be found by visiting the [activity page] 
   (https://wwws.betterment.com/app/#activity) of your Betterment account, 
   and hovering over the "Download Activity as CSV" link. In this link, you 
-  will see the values `accountGroupID=` and `account=`. The GroupID should 
-  be the same for all accounts, but each account you have will have a 
+  will see the `subAccountID=` (or something like that). 
+  Each account you have will have a 
   different number. In the example `account_info.ini` file, I have two 
   accounts (Wealth building and Roth IRA), so I have listed them there. The 
   names you give them (`wb` and `roth`) don't matter, as the script will 
   loop through all the accounts you put in this section and try to download 
   their activity. The supplied names will be used in the outputted .csv files.
+  You should also change the directories to ones that make sense for you. The
+  downloaded files will be placed in this directory (Linux and Windows are supported,
+  support for MacOS should be trivial to add, but I don't have a system to test on).
  
 To use the actual script:
 
