@@ -6,6 +6,12 @@
 import pandas as pd
 from time import time
 from datetime import date, datetime, timedelta
+from selenium import webdriver
+from time import sleep
+import tempfile
+import shutil
+import os
+import platform
 
 try:
     # Python 2 import
@@ -22,6 +28,7 @@ if sys.version_info[0] >= 3:
     raw_input = input
 
 print_out = False
+
 
 
 def log(output):
@@ -152,6 +159,7 @@ def convert_betterment_to_ynab(dateafter='earliest',
                    index=False,
                    )
 
+        os.remove(f)
         log("\nSaved results to " + f[:-4] + '_YNAB.csv')
 
 
@@ -216,6 +224,7 @@ def download_trans(print_output=False,
 
     user_dict = read_config_section('account_info.ini', 'UserInfo')
     acc_dict = read_config_section('account_info.ini', 'AccountInfo')
+    dir_dict = read_config_section('account_info.ini', 'Directory')
 
     # Figure out number of days
     if days_ago is None:
@@ -244,38 +253,34 @@ def download_trans(print_output=False,
         user = raw_input("Betterment username: ")
         passwd = getpass("Betterment password: ")
 
-    try:
-        from twill import set_output
-        from twill.commands import go, fv, submit, save_html, show
-    except ImportError:
-        print("Could not import twill library. "
-              "Please check installation and try again")
-        sys.exit(1)
-
-    # Disable twill output if not desired
-    if not print_out:
-        import os
-        f = open(os.devnull, "w")
-        set_output(f)
-    else:
-        set_output(None)
+    # Create temp dir and firefox profile
+    tmpdir = tempfile.mkdtemp()
+    profile = webdriver.FirefoxProfile()
+    profile.set_preference("browser.download.folderList", 2)
+    profile.set_preference("browser.download.manager.showWhenStarting",
+                           False)
+    profile.set_preference("browser.download.dir", tmpdir)
+    profile.set_preference("browser.helperApps.neverAsk.saveToDisk",
+                           "text/csv")
+    driver = webdriver.Firefox(firefox_profile=profile)
 
     # Login to betterment:
-    go('https://www.betterment.com/login')
-    fv("1", "userName", user)
-    fv("1", "password", passwd)
+    driver.get('https://wwws.betterment.com/app/login')
+    wd_login = driver.find_elements_by_id('web_authentication_email')[0]
+    wd_passwd = driver.find_elements_by_id('web_authentication_password')[0]
+    wd_login.clear()
+    wd_passwd.clear()
+    wd_login.send_keys(user)
+    wd_passwd.send_keys(passwd)
+    button = driver.find_element_by_name('commit')
+    button.click()
 
-    got_in = False
-    for i in range(6):
-        if not got_in:
-            try:
-                submit(str(i))
-                got_in = True
-            except:
-                log(str(i) + "th submit failed, trying again")
+    # wait for page load:
+    while driver.current_url != 'https://wwws.betterment.com/app/#summary':
+        sleep(0.5)
+    sleep(5)
 
-    # Loop through the accounts defined in the config file,
-    # downloading and saving the csv file of transactions for each one
+    # Download transactions and move files to directory in account_info.ini
     for account_name in acc_dict:
         account_number = acc_dict[account_name]
 
@@ -285,7 +290,7 @@ def download_trans(print_output=False,
                   '&activity_filter%5Bstart_on%5D=' + start_s + \
                   '&activity_filter%5Bsub_account_id%5D=' + account_number + \
                   filter_text + '=deposits' + \
-                  filter_text + '=withdrawals'  + \
+                  filter_text + '=withdrawals' + \
                   filter_text + '=dividends' + \
                   filter_text + '=tax_loss_harvests' + \
                   filter_text + '=allocation_changes' + \
@@ -293,17 +298,25 @@ def download_trans(print_output=False,
                   filter_text + '=other' + \
                   filter_text + '=market_changes'
 
-        # log('Downloading {} transactions from {}'.format(account_name,
-        #                                                  dl_link))
+        driver.get(dl_link)
+        log('Downloading from: ' + dl_link)
+        fname = os.path.join(tmpdir, 'transactions.csv')
+        if platform.system() == 'Windows':
+            directory = dir_dict['win_dir']
+        elif platform.system() == 'Linux':
+            directory = dir_dict['linux_dir']
+        else:
+            directory = '~'
 
-        # Download accounts:
-        go(dl_link)
-        fname = "transactions_" + account_name + ".csv"
-        save_html(fname)
-        # show()
+        new_fname = os.path.join(directory,
+                                 'transactions_{}.csv'.format(account_name))
+        shutil.move(fname, new_fname)
 
         log("\nSaved " + fname + '\n')
-        files.append(fname)
+        files.append(new_fname)
+
+    driver.close()
+    shutil.rmtree(tmpdir)
 
     return files
 
